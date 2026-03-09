@@ -33,7 +33,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/assets/ohmycaptcha-hero.svg" alt="OhMyCaptcha architecture" width="680">
+  <img src="docs/assets/ohmycaptcha-hero.png" alt="OhMyCaptcha" width="680">
 </p>
 
 ---
@@ -79,34 +79,8 @@ curl http://localhost:8000/api/v1/health
 ## 🏗 Architecture
 
 <p align="center">
-  <img src="docs/assets/ohmycaptcha-hero.svg" alt="OhMyCaptcha architecture diagram" width="680">
+  <img src="docs/assets/ohmycaptcha-diagram.png" alt="OhMyCaptcha architecture" width="560">
 </p>
-
-```
-Client / flow2api
-    │
-    ▼
-┌─────────────────────────────┐
-│  FastAPI HTTP Layer          │
-│  /createTask /getTaskResult │
-└─────────────┬───────────────┘
-              │
-    ┌─────────▼─────────┐
-    │  In-Memory         │
-    │  TaskManager       │
-    │  (async dispatch)  │
-    └──┬──┬──┬──┬──┬────┘
-       │  │  │  │  │
-       ▼  ▼  ▼  ▼  ▼
-  ┌────┐┌────┐┌────┐┌────┐┌────┐
-  │ v3 ││ v2 ││ hC ││ CF ││ Img│
-  │Sol ││Sol ││Sol ││Sol ││Rec │
-  └────┘└────┘└────┘└────┘└────┘
-    │     │     │     │     │
-    ▼     ▼     ▼     ▼     ▼
-Playwright+Chromium    OpenAI-compatible
-(browser tokens)       (vision models)
-```
 
 **Core components:**
 

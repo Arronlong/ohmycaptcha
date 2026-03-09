@@ -19,7 +19,7 @@ OhMyCaptcha 将 **FastAPI**、**Playwright** 与 **OpenAI-compatible 多模态�
 </div>
 
 <div class="hero__visual">
-  <img src="../assets/ohmycaptcha-hero.svg" alt="OhMyCaptcha 架构图">
+  <img src="../assets/ohmycaptcha-hero.png" alt="OhMyCaptcha 架构图">
 </div>
 
 </div>

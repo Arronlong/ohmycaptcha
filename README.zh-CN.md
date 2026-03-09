@@ -33,7 +33,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/assets/ohmycaptcha-hero.svg" alt="OhMyCaptcha 架构图" width="680">
+  <img src="docs/assets/ohmycaptcha-hero.png" alt="OhMyCaptcha" width="680">
 </p>
 
 ---
@@ -79,34 +79,8 @@ curl http://localhost:8000/api/v1/health
 ## 🏗 架构
 
 <p align="center">
-  <img src="docs/assets/ohmycaptcha-hero.svg" alt="OhMyCaptcha 架构图" width="680">
+  <img src="docs/assets/ohmycaptcha-diagram.png" alt="OhMyCaptcha 架构图" width="560">
 </p>
-
-```
-客户端 / flow2api
-    │
-    ▼
-┌─────────────────────────────┐
-│  FastAPI HTTP 层             │
-│  /createTask /getTaskResult │
-└─────────────┬───────────────┘
-              │
-    ┌─────────▼─────────┐
-    │  内存任务管理器     │
-    │  TaskManager       │
-    │  (异步分发)        │
-    └──┬──┬──┬──┬──┬────┘
-       │  │  │  │  │
-       ▼  ▼  ▼  ▼  ▼
-  ┌────┐┌────┐┌────┐┌────┐┌────┐
-  │ v3 ││ v2 ││ hC ││ CF ││ 图片│
-  │求解││求解││求解││求解││识别 │
-  └────┘└────┘└────┘└────┘└────┘
-    │     │     │     │     │
-    ▼     ▼     ▼     ▼     ▼
-Playwright+Chromium    OpenAI-compatible
-(浏览器令牌生成)       (视觉模型)
-```
 
 **核心组件：**
 
