@@ -4,21 +4,36 @@
 
 **Self-hostable YesCaptcha-style captcha solver for flow2api and similar integrations**
 
-[中文说明](README.zh-CN.md) · [Documentation](https://shenhao-stu.github.io/ohmycaptcha/) · [Render Guide](https://shenhao-stu.github.io/ohmycaptcha/deployment/render/) · [Hugging Face Guide](https://shenhao-stu.github.io/ohmycaptcha/deployment/huggingface/)
-
 <p>
-  <img alt="Python" src="https://img.shields.io/badge/Python-3.10%2B-blue.svg">
-  <img alt="FastAPI" src="https://img.shields.io/badge/FastAPI-0.119-009688.svg">
-  <img alt="Playwright" src="https://img.shields.io/badge/Playwright-Chromium-2EAD33.svg">
-  <img alt="Docs" src="https://img.shields.io/badge/docs-MkDocs%20Material-526CFE.svg">
-  <img alt="License" src="https://img.shields.io/badge/license-MIT-black.svg">
+  <a href="https://github.com/shenhao-stu/ohmycaptcha"><img alt="GitHub Repo" src="https://img.shields.io/badge/GitHub-ohmycaptcha-181717?logo=github"></a>
+  <a href="https://shenhao-stu.github.io/ohmycaptcha/"><img alt="Docs" src="https://img.shields.io/badge/docs-MkDocs%20Material-526CFE?logo=materialformkdocs&logoColor=white"></a>
+  <img alt="Python" src="https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white">
+  <img alt="FastAPI" src="https://img.shields.io/badge/FastAPI-0.119-009688?logo=fastapi&logoColor=white">
+  <img alt="Playwright" src="https://img.shields.io/badge/Playwright-Chromium-2EAD33?logo=playwright&logoColor=white">
+  <img alt="OpenAI Compatible" src="https://img.shields.io/badge/OpenAI--compatible-Multimodal-6E56CF">
+  <img alt="Render" src="https://img.shields.io/badge/Deploy-Render-000000?logo=render&logoColor=white">
+  <img alt="Hugging Face Spaces" src="https://img.shields.io/badge/Deploy-Hugging%20Face%20Spaces-FFB000?logo=huggingface&logoColor=black">
+  <img alt="License" src="https://img.shields.io/badge/License-MIT-111111">
 </p>
 
-![OhMyCaptcha hero](docs/assets/ohmycaptcha-hero.svg)
+[中文说明](README.zh-CN.md) · [Documentation](https://shenhao-stu.github.io/ohmycaptcha/) · [Render Guide](https://shenhao-stu.github.io/ohmycaptcha/deployment/render/) · [Hugging Face Guide](https://shenhao-stu.github.io/ohmycaptcha/deployment/huggingface/) · [Skills](skills/README.md)
+
+![OhMyCaptcha hero](docs/assets/ohmycaptcha-hero.png)
 
 </div>
 
-OhMyCaptcha is a high-quality, self-hostable captcha-solving service that exposes a **YesCaptcha-style async API** for the task types implemented in this repository. It is built for **flow2api**, internal routing layers, and other systems that expect `createTask` / `getTaskResult` semantics.
+OhMyCaptcha is a polished, self-hostable captcha-solving service that exposes a **YesCaptcha-style async API** for the task types implemented in this repository. It is built for **flow2api**, internal routing layers, and other systems that expect `createTask` / `getTaskResult` semantics.
+
+---
+
+## Highlights
+
+- **YesCaptcha-style async API** for supported task types
+- **Playwright + Chromium** solving path for reCAPTCHA v3 token generation
+- **OpenAI-compatible multimodal backends** for image captcha analysis
+- **Self-hosted friendly deployment** for local environments, Render, and Hugging Face Spaces
+- **Bilingual docs** with GitHub Pages publishing
+- **Reusable agent skills** for Claude Code, OpenCode, and similar workflows
 
 ---
 
@@ -35,29 +50,26 @@ Managed captcha-solving platforms are convenient, but self-hosted workflows ofte
 
 ---
 
-## What you get
+## Supported task types
 
-- **YesCaptcha-style API surface**
-  - `POST /createTask`
-  - `POST /getTaskResult`
-  - `POST /getBalance`
-  - `GET /api/v1/health`
-- **reCAPTCHA v3 task support**
-  - `RecaptchaV3TaskProxyless`
-  - `RecaptchaV3TaskProxylessM1`
-  - `RecaptchaV3TaskProxylessM1S7`
-  - `RecaptchaV3TaskProxylessM1S9`
-- **Image recognition task support**
-  - `ImageToTextTask`
-- **FastAPI + Playwright architecture** for browser-based solving
-- **OpenAI-compatible multimodal integration** for image captcha analysis
-- **Render-ready and Hugging Face-friendly deployment paths**
-- **Bilingual documentation** with GitHub Pages publishing
-- **Reusable local skills** for Claude Code, OpenCode, and similar agent environments
+### reCAPTCHA v3
+
+- `RecaptchaV3TaskProxyless`
+- `RecaptchaV3TaskProxylessM1`
+- `RecaptchaV3TaskProxylessM1S7`
+- `RecaptchaV3TaskProxylessM1S9`
+
+All four task types currently use the same browser-based solving path in this codebase.
+
+### Image captcha recognition
+
+- `ImageToTextTask`
+
+`ImageToTextTask` uses an Argus-inspired multimodal recognition prompt, normalizes images into a 1440×900 coordinate space, and returns structured recognition output serialized into `solution.text`.
 
 ---
 
-## Architecture at a glance
+## Architecture
 
 ```text
 Client / flow2api
@@ -79,33 +91,12 @@ solver       backend
  POST /getTaskResult
 ```
 
-### Core implementation
+### Core building blocks
 
 - **FastAPI** powers the HTTP API
 - **Playwright + Chromium** generate reCAPTCHA v3 tokens
 - **OpenAI-compatible multimodal APIs** analyze image captchas
 - **An in-memory async task manager** handles background execution
-
----
-
-## Supported task types
-
-### reCAPTCHA v3
-
-The service registers these task types at startup:
-
-- `RecaptchaV3TaskProxyless`
-- `RecaptchaV3TaskProxylessM1`
-- `RecaptchaV3TaskProxylessM1S7`
-- `RecaptchaV3TaskProxylessM1S9`
-
-All four task types currently use the same browser-based solving path in this codebase.
-
-### Image captcha recognition
-
-- `ImageToTextTask`
-
-`ImageToTextTask` uses an Argus-inspired multimodal recognition prompt, normalizes images into a 1440×900 coordinate space, and returns structured recognition output serialized into `solution.text`.
 
 ---
 
@@ -147,7 +138,12 @@ curl http://localhost:8000/api/v1/health
 
 ---
 
-## API example
+## API surface
+
+- `POST /createTask`
+- `POST /getTaskResult`
+- `POST /getBalance`
+- `GET /api/v1/health`
 
 ### Create a reCAPTCHA v3 task
 
@@ -211,8 +207,6 @@ curl -X POST http://localhost:8000/createTask \
 ---
 
 ## Deployment
-
-Detailed deployment guides live in the docs site:
 
 - [Render deployment](https://shenhao-stu.github.io/ohmycaptcha/deployment/render/)
 - [Hugging Face Spaces deployment](https://shenhao-stu.github.io/ohmycaptcha/deployment/huggingface/)
