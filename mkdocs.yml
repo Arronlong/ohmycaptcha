@@ -61,6 +61,10 @@ plugins:
             API Reference: API Reference
             Usage: Usage
             reCAPTCHA v3: reCAPTCHA v3
+            reCAPTCHA v2: reCAPTCHA v2
+            hCaptcha: hCaptcha
+            Cloudflare Turnstile: Cloudflare Turnstile
+            Image Classification: Image Classification
             Image CAPTCHA: Image CAPTCHA
             Positioning: Positioning
             Deployment: Deployment
@@ -79,6 +83,10 @@ plugins:
             API Reference: API 参考
             Usage: 使用指南
             reCAPTCHA v3: reCAPTCHA v3
+            reCAPTCHA v2: reCAPTCHA v2
+            hCaptcha: hCaptcha
+            Cloudflare Turnstile: Cloudflare Turnstile
+            Image Classification: 图像分类
             Image CAPTCHA: 图片验证码
             Positioning: 项目定位
             Deployment: 部署
@@ -109,6 +117,10 @@ nav:
   - API Reference: api-reference.md
   - Usage:
       - reCAPTCHA v3: usage/recaptcha-v3.md
+      - reCAPTCHA v2: usage/recaptcha-v2.md
+      - hCaptcha: usage/hcaptcha.md
+      - Cloudflare Turnstile: usage/turnstile.md
+      - Image Classification: usage/classification.md
       - Image CAPTCHA: usage/image-captcha.md
   - Positioning: positioning.md
   - Deployment:

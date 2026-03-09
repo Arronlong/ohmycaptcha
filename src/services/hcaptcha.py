@@ -117,15 +117,21 @@ class HCaptchaSolver:
             await page.mouse.move(400, 300)
             await asyncio.sleep(1)
 
-            # Click the hCaptcha checkbox
+            # Click only the checkbox iframe — match by specific title to avoid the challenge iframe
             iframe_element = page.frame_locator(
-                'iframe[src*="hcaptcha"], iframe[title*="hCaptcha"]'
+                'iframe[title="Widget containing checkbox for hCaptcha security challenge"]'
             )
-            checkbox = iframe_element.locator("#checkbox, .check")
+            checkbox = iframe_element.locator("#checkbox")
             await checkbox.click(timeout=10_000)
-            await asyncio.sleep(5)
 
-            token = await page.evaluate(_EXTRACT_HCAPTCHA_TOKEN_JS)
+            # Wait for token — may require challenge completion; poll up to 30s
+            for _ in range(6):
+                await asyncio.sleep(5)
+                token = await page.evaluate(_EXTRACT_HCAPTCHA_TOKEN_JS)
+                if isinstance(token, str) and len(token) > 20:
+                    break
+            else:
+                token = None
 
             if not isinstance(token, str) or len(token) < 20:
                 raise RuntimeError(f"Invalid hCaptcha token: {token!r}")

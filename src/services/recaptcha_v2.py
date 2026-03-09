@@ -2,8 +2,14 @@
 
 Supports NoCaptchaTaskProxyless, RecaptchaV2TaskProxyless,
 and RecaptchaV2EnterpriseTaskProxyless task types.
-Uses Playwright to visit the target page, click the reCAPTCHA checkbox,
-and extract the response token.
+
+Strategy:
+  1. Visit the target page with a realistic browser context.
+  2. Click the reCAPTCHA checkbox.
+  3. If the challenge dialog appears (bot detected), switch to the audio
+     challenge, download the audio file, transcribe it via the configured
+     speech-to-text model, and submit the text.
+  4. Extract the gRecaptchaResponse token.
 """
 
 from __future__ import annotations
@@ -12,6 +18,7 @@ import asyncio
 import logging
 from typing import Any
 
+import httpx
 from playwright.async_api import Browser, Playwright, async_playwright
 
 from ..core.config import Config
@@ -43,7 +50,11 @@ _EXTRACT_TOKEN_JS = """
 
 
 class RecaptchaV2Solver:
-    """Solves reCAPTCHA v2 tasks via headless Chromium with checkbox clicking."""
+    """Solves reCAPTCHA v2 tasks via headless Chromium with checkbox clicking.
+
+    Falls back to the audio challenge path when Google presents a visual
+    challenge to the headless browser.
+    """
 
     def __init__(self, config: Config, browser: Browser | None = None) -> None:
         self._config = config
@@ -119,11 +130,9 @@ class RecaptchaV2Solver:
         try:
             timeout_ms = self._config.browser_timeout * 1000
             await page.goto(website_url, wait_until="networkidle", timeout=timeout_ms)
-
             await page.mouse.move(400, 300)
             await asyncio.sleep(0.5)
 
-            # For invisible reCAPTCHA, trigger via execute
             if is_invisible:
                 token = await page.evaluate(
                     """
@@ -138,15 +147,7 @@ class RecaptchaV2Solver:
                     [website_key],
                 )
             else:
-                # Try to click the reCAPTCHA checkbox iframe
-                iframe_element = page.frame_locator(
-                    'iframe[src*="recaptcha"], iframe[title*="reCAPTCHA"]'
-                )
-                checkbox = iframe_element.locator("#recaptcha-anchor, .recaptcha-checkbox")
-                await checkbox.click(timeout=10_000)
-                await asyncio.sleep(3)
-
-                token = await page.evaluate(_EXTRACT_TOKEN_JS)
+                token = await self._solve_checkbox(page)
 
             if not isinstance(token, str) or len(token) < 20:
                 raise RuntimeError(f"Invalid reCAPTCHA v2 token: {token!r}")
@@ -155,3 +156,123 @@ class RecaptchaV2Solver:
             return token
         finally:
             await context.close()
+
+    async def _solve_checkbox(self, page: Any) -> str | None:
+        """Click the reCAPTCHA checkbox. If a visual challenge appears, try audio path."""
+        # The checkbox iframe always has title="reCAPTCHA"
+        checkbox_frame = page.frame_locator('iframe[title="reCAPTCHA"]').first
+        checkbox = checkbox_frame.locator("#recaptcha-anchor")
+        await checkbox.click(timeout=10_000)
+        await asyncio.sleep(2)
+
+        # Check if token was issued immediately (low-risk sessions)
+        token = await page.evaluate(_EXTRACT_TOKEN_JS)
+        if isinstance(token, str) and len(token) > 20:
+            return token
+
+        # Challenge dialog appeared — try audio challenge path
+        log.info("reCAPTCHA challenge detected, attempting audio path")
+        try:
+            token = await self._solve_audio_challenge(page)
+        except Exception as exc:
+            log.warning("Audio challenge path failed: %s", exc)
+            token = None
+
+        return token
+
+    async def _solve_audio_challenge(self, page: Any) -> str | None:
+        """Click the audio button in the bframe and transcribe the audio."""
+        # The challenge bframe has title containing "recaptcha challenge"
+        bframe = page.frame_locator('iframe[title*="recaptcha challenge"]')
+
+        # Click the audio challenge button
+        audio_btn = bframe.locator("#recaptcha-audio-button")
+        await audio_btn.click(timeout=8_000)
+
+        # Wait for the audio challenge iframe to load its content
+        await asyncio.sleep(3)
+
+        # After clicking audio, a new bframe is rendered with the audio player
+        bframe = page.frame_locator('iframe[title*="recaptcha challenge"]')
+
+        # Get the audio source URL — try multiple selectors
+        audio_src = None
+        for selector in [
+            ".rc-audiochallenge-tdownload-link",
+            "a[href*='.mp3']",
+            "audio source",
+        ]:
+            try:
+                element = bframe.locator(selector).first
+                audio_src = await element.get_attribute("href", timeout=5_000) or await element.get_attribute("src", timeout=1_000)
+                if audio_src:
+                    break
+            except Exception:
+                continue
+
+        if not audio_src:
+            raise RuntimeError("Could not find audio challenge download link")
+
+        # Download the audio file
+        async with httpx.AsyncClient(timeout=30) as client:
+            resp = await client.get(audio_src)
+            resp.raise_for_status()
+            audio_bytes = resp.content
+
+        # Transcribe via the vision/language model (base64 audio → text)
+        transcript = await self._transcribe_audio(audio_bytes)
+        log.info("Audio transcribed: %r", transcript[:40] if transcript else None)
+
+        if not transcript:
+            raise RuntimeError("Audio transcription returned empty result")
+
+        # Submit the transcript
+        audio_input = bframe.locator("#audio-response")
+        await audio_input.fill(transcript.strip().lower())
+        verify_btn = bframe.locator("#recaptcha-verify-button")
+        await verify_btn.click(timeout=8_000)
+        await asyncio.sleep(2)
+
+        return await page.evaluate(_EXTRACT_TOKEN_JS)
+
+    async def _transcribe_audio(self, audio_bytes: bytes) -> str | None:
+        """Send audio bytes to the OpenAI-compatible audio transcription endpoint."""
+        import base64
+
+        audio_b64 = base64.b64encode(audio_bytes).decode()
+        payload = {
+            "model": self._config.captcha_model,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": (
+                                "This is a reCAPTCHA audio challenge. "
+                                "The audio contains spoken digits or words. "
+                                "Transcribe exactly what is spoken, digits only, "
+                                "separated by spaces. Reply with only the transcription."
+                            ),
+                        },
+                        {
+                            "type": "image_url",
+                            "image_url": {"url": f"data:audio/mp3;base64,{audio_b64}"},
+                        },
+                    ],
+                }
+            ],
+            "max_tokens": 50,
+            "temperature": 0,
+        }
+
+        async with httpx.AsyncClient(timeout=30) as client:
+            resp = await client.post(
+                f"{self._config.captcha_base_url}/chat/completions",
+                headers={"Authorization": f"Bearer {self._config.captcha_api_key}"},
+                json=payload,
+            )
+            if resp.status_code != 200:
+                raise RuntimeError(f"Transcription API error {resp.status_code}: {resp.text[:200]}")
+            data = resp.json()
+            return data["choices"][0]["message"]["content"].strip()
