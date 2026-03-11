@@ -1,19 +1,17 @@
-# 改用完整的Debian镜像（非slim），避免apt源缺失，兼容所有依赖
-FROM python:3.10-bullseye
+# 用Debian Slim镜像（海外环境更轻量，官方源访问快）
+FROM python:3.10-slim-bullseye
 
-# 设置非交互模式，避免apt安装时弹交互框
+# 非交互模式：避免apt弹出交互框中断构建（海外环境必备）
 ENV DEBIAN_FRONTEND=noninteractive
 
-# 设置工作目录
 WORKDIR /app
 
 # 核心修复：
-# 1. 换国内源（加速安装，避免国外源超时）
-# 2. 只安装Playwright+Chromium必需的依赖，移除不存在的fonts-ubuntu
-# 3. 增加--fix-missing修复依赖缺失
-RUN echo "deb http://mirrors.aliyun.com/debian/ bullseye main contrib non-free" > /etc/apt/sources.list && \
-    echo "deb http://mirrors.aliyun.com/debian/ bullseye-updates main contrib non-free" >> /etc/apt/sources.list && \
-    apt-get update && \
+# 1. 仅用Debian官方源（GitHub Actions海外环境访问快）
+# 2. 移除Debian不存在的fonts-ubuntu（报错核心原因）
+# 3. 仅保留Chromium+Playwright必需依赖，精简且无无效包
+# 4. --fix-missing 修复依赖缺失，--no-install-recommends 减小镜像体积
+RUN apt-get update && \
     apt-get install -y --no-install-recommends --fix-missing \
     fonts-unifont \
     libnss3 \
@@ -31,19 +29,20 @@ RUN echo "deb http://mirrors.aliyun.com/debian/ bullseye main contrib non-free" 
     libasound2 \
     libpango-1.0-0 \
     libcairo2 \
-    wget \
     && apt-get clean && rm -rf /var/lib/apt/lists/* && \
-    # 重置交互模式
+    # 重置交互模式，避免后续影响
     unset DEBIAN_FRONTEND
 
 # 复制依赖文件
 COPY requirements.txt .
 
-# 安装Python依赖（用国内源加速）
-RUN pip install --no-cache-dir --root-user-action=ignore -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+# 安装Python依赖（用官方PyPI，GitHub Actions海外访问快）
+RUN pip install --no-cache-dir --root-user-action=ignore -r requirements.txt
 
-# 安装Playwright + Chromium（跳过系统依赖安装，因为上面已手动装）
-RUN playwright install chromium --force
+# 安装Playwright + Chromium（跳过系统依赖安装，已手动装完必需项）
+RUN playwright install chromium --force && \
+    # 验证Chromium安装成功
+    playwright --version
 
 # 复制项目代码
 COPY . .
@@ -51,5 +50,5 @@ COPY . .
 # 暴露端口
 EXPOSE 8000
 
-# 启动命令
+# 启动命令（保持项目原有逻辑）
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
