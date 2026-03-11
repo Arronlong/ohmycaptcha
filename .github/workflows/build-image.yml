@@ -2,7 +2,7 @@ name: Build and Push Docker Image
 on:
   push:
     branches: [ main ]
-  workflow_dispatch: # 允许手动触发构建
+  workflow_dispatch: # 手动触发
 
 jobs:
   build:
@@ -10,14 +10,18 @@ jobs:
     permissions:
       packages: write
       contents: read
-    # 第一步：定义环境变量，将用户名强制转为小写
-    env:
-      # 核心修复：用 echo 命令把用户名转小写，存入 ENV 变量
-      LOWERCASE_OWNER: ${{ github.repository_owner | lower }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      # 关键步骤：用Shell命令将用户名转为小写，写入环境变量（兼容所有版本）
+      - name: Set lowercase owner env
+        run: |
+          # 用tr命令把用户名转成全小写
+          LOWERCASE_OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          # 写入GitHub Actions环境变量，后续步骤可引用
+          echo "LOWERCASE_OWNER=$LOWERCASE_OWNER" >> $GITHUB_ENV
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -35,6 +39,6 @@ jobs:
           context: .
           file: ./Dockerfile.render
           push: true
-          # 使用小写的用户名变量拼镜像标签
+          # 使用Shell生成的小写用户名变量
           tags: |
             ghcr.io/${{ env.LOWERCASE_OWNER }}/ohmycaptcha:latest
