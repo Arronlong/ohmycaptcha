@@ -23,13 +23,14 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }} # GitHub 自动生成的 Token，无需手动配置
+          password: ${{ secrets.GITHUB_TOKEN }} # GitHub 自动生成的 Token
 
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./Dockerfile.render # 使用仓库里已有的 Dockerfile
+          file: ./Dockerfile.render # 使用仓库里的 Dockerfile
           push: true
+          # 关键修改：用 toLower() 把用户名转为全小写
           tags: |
-            ghcr.io/${{ github.repository_owner }}/ohmycaptcha:latest
+            ghcr.io/${{ toLower(github.repository_owner) }}/ohmycaptcha:latest
