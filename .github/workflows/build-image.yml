@@ -8,8 +8,12 @@ jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      packages: write # 允许推送到 GHCR
+      packages: write
       contents: read
+    # 第一步：定义环境变量，将用户名强制转为小写
+    env:
+      # 核心修复：用 echo 命令把用户名转小写，存入 ENV 变量
+      LOWERCASE_OWNER: ${{ github.repository_owner | lower }}
 
     steps:
       - name: Checkout code
@@ -23,14 +27,14 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }} # GitHub 自动生成的 Token
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./Dockerfile.render # 使用仓库里的 Dockerfile
+          file: ./Dockerfile.render
           push: true
-          # 关键修改：用 toLower() 把用户名转为全小写
+          # 使用小写的用户名变量拼镜像标签
           tags: |
-            ghcr.io/${{ toLower(github.repository_owner) }}/ohmycaptcha:latest
+            ghcr.io/${{ env.LOWERCASE_OWNER }}/ohmycaptcha:latest
