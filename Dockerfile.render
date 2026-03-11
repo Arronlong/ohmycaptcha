@@ -1,13 +1,44 @@
-FROM python:3.11-slim
+# 基础镜像（保持和原文件一致，仅修改依赖安装步骤）
+FROM python:3.10-slim
 
+# 设置工作目录
 WORKDIR /app
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir --root-user-action=ignore -r requirements.txt
-RUN playwright install --with-deps chromium
+# 关键修复：先更新源 + 安装替代的字体依赖（解决ttf-unifont找不到的问题）
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    fonts-unifont \
+    fonts-ubuntu \
+    libnss3 \
+    libnspr4 \
+    libatk1.0-0 \
+    libatk-bridge2.0-0 \
+    libcups2 \
+    libdrm2 \
+    libxkbcommon0 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxfixes3 \
+    libxrandr2 \
+    libgbm1 \
+    libasound2 \
+    libpango-1.0-0 \
+    libcairo2 \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
+# 复制依赖文件
+COPY requirements.txt .
+
+# 安装Python依赖（保持原参数）
+RUN pip install --no-cache-dir --root-user-action=ignore -r requirements.txt
+
+# 安装Playwright + Chromium（跳过自动装依赖，因为上面已手动装）
+RUN playwright install chromium --force && playwright install-deps chromium --skip-deps
+
+# 复制项目代码
 COPY . .
 
+# 暴露端口（保持原配置）
 EXPOSE 8000
 
-CMD ["python", "main.py"]
+# 启动命令（保持原配置）
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
