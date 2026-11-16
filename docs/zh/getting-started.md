@@ -65,6 +65,8 @@ docker compose logs -f ohmycaptcha
 
 浏览器专用变量不影响 Python 模型请求和音频下载。这些请求仍由 HTTPX 读取通用代理环境变量；仅设 `https_proxy` 不会代理 Python 的 HTTP 请求。HTTPX 与 Chromium 的绕过规则并不完全相同，内网模型的 IP/主机名应在 `NO_PROXY` 中显式列出。
 
+镜像使用 Python 3.11 / Debian 12（Bookworm），由锁定版本的 Playwright 安装 Chromium 和系统依赖，并在构建中执行浏览器启动检查。若旧版 Bullseye 镜像在 APT 阶段报安全更新包 `404`，请更新源码后执行 `docker compose build --pull ohmycaptcha`，再重建容器。
+
 ## 启动服务
 
 ```bash
