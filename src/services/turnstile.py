@@ -56,6 +56,7 @@ class TurnstileSolver:
         self._playwright = await async_playwright().start()
         self._browser = await self._playwright.chromium.launch(
             headless=self._config.browser_headless,
+            proxy=self._config.browser_proxy,
             args=[
                 "--disable-blink-features=AutomationControlled",
                 "--no-sandbox",

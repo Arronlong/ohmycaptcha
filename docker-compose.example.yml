@@ -1,0 +1,18 @@
+services:
+  ohmycaptcha:
+    build:
+      context: .
+      dockerfile: Dockerfile.render
+    image: ohmycaptcha:local
+    container_name: ohmycaptcha
+    ports:
+      - "8989:8000"
+    environment:
+      SERVER_HOST: 0.0.0.0
+      SERVER_PORT: "8000"
+      CLIENT_KEY: ${CLIENT_KEY:?Set CLIENT_KEY in .env}
+      BROWSER_HEADLESS: "true"
+      http_proxy: ${HTTP_PROXY:-}
+      https_proxy: ${HTTPS_PROXY:-}
+      no_proxy: ${NO_PROXY:-localhost,127.0.0.1,::1}
+    restart: always

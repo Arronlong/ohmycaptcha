@@ -17,7 +17,11 @@ base URL, API key, and model name.
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+
+from playwright.async_api import ProxySettings
+
+from .proxy import load_browser_proxy
 
 
 @dataclass(frozen=True)
@@ -44,6 +48,7 @@ class Config:
     # Playwright browser
     browser_headless: bool
     browser_timeout: int  # seconds
+    browser_proxy: ProxySettings | None = field(default=None, repr=False)
 
     # ── Convenience aliases (backward-compat) ──
 
@@ -100,6 +105,7 @@ def load_config() -> Config:
         browser_headless=os.environ.get("BROWSER_HEADLESS", "true").strip().lower()
         in {"1", "true", "yes"},
         browser_timeout=int(os.environ.get("BROWSER_TIMEOUT", "30")),
+        browser_proxy=load_browser_proxy(),
     )
 
 

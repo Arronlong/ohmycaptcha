@@ -234,6 +234,8 @@ OhMyCaptcha 使用两种模型后端 —— **本地模型**处理图像任务�
 | `CAPTCHA_TIMEOUT` | 模型请求超时（秒） | `30` |
 | `BROWSER_HEADLESS` | 无头浏览器 | `true` |
 | `BROWSER_TIMEOUT` | 页面加载超时（秒） | `30` |
+| `BROWSER_PROXY_SERVER` | 浏览器专用代理；未设置时读取通用代理环境变量 | 自动 |
+| `BROWSER_PROXY_BYPASS` | 浏览器直连规则，逗号分隔 | `no_proxy` / `NO_PROXY` |
 | `SERVER_HOST` | 监听地址 | `0.0.0.0` |
 | `SERVER_PORT` | 监听端口 | `8000` |
 
